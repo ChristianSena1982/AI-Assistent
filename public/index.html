@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Setter B2B - Artsoftware2022</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; height: 100vh; margin: 0; padding: 0; }
+        .chat-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; background: #1e293b; border-radius: 12px; margin: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .chat-header { background: #3b82f6; padding: 15px; font-weight: bold; text-align: center; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px 14px; border-radius: 8px; max-width: 80%; line-height: 1.4; word-wrap: break-word; }
+        .user { background: #2563eb; align-self: flex-end; }
+        .assistant { background: #334155; align-self: flex-start; }
+        .chat-input { display: flex; padding: 15px; background: #0f172a; border-top: 1px solid #334155; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: white; outline: none; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">🤖 Coach Setter B2B - Artsoftware2022</div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">Ciao Setter! Come posso aiutarti oggi con le chiamate o le obiezioni?</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Scrivi qui al coach..." autocomplete="off">
+            <button onclick="sendMessage()">Invia</button>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = 'session_' + Math.random().toString(36).slice(2);
+
+        document.getElementById('userInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function sendMessage() {
+            const inputField = document.getElementById('userInput');
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            inputField.value = '';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId, message: text })
+                });
+                const data = await response.json();
+                if (data.reply) {
+                    appendMessage(data.reply, 'assistant');
+                } else {
+                    appendMessage("Errore nella risposta del server.", 'assistant');
+                }
+            } catch (err) {
+                appendMessage("Errore di connessione al server.", 'assistant');
+            }
+        }
+
+        function appendMessage(text, sender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + sender;
+            msgDiv.innerText = text;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
