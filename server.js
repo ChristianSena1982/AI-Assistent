@@ -32,8 +32,7 @@ La segretaria ha il compito di fare da scudo. I setter NON devono sembrare vendi
    * *Script A:* "Buongiorno, sono [Nome] di Artsoftware. Devo confermare un aggiornamento operativo con il Dottore relativo alla gestione automatizzata delle chiamate di studio. Può passarmelo un secondo o mi dice a che ora posso rintracciarlo senza disturbarlo?"
    * *Script B:* "Sì, guardi, stiamo attivando il servizio di risposta automatica 24/7 per gli studi della zona. Devo solo verificare con il titolare se la linea dello studio è abilitata per la prova gratuita di questo mese. Me lo passa un attimo?"
 3. **Se insistono con: "Mandi una mail a info@..."**
-   * *Risposta:* "Certamente, la invio subito. Tuttavia le mail generiche finiscono nello spam. Mi lascia l'indirizzo diretto del Dottore o il suo nome di battesimo così metto lei in copia ed evitiamo di fargli perdere l'opportunità della settimana di prova?"
-
+   * *Risposta:* "Certamente, la invio subito. Tuttavia le mail generiche finiscono nello spam. Inviare tutto su whatsapp sarebbe più facile per me
 ---
 
 ### 🎯 SCRIPT TELEFONICO DIRETTISSIMO CON IL DOTTORE / TITOLARE
