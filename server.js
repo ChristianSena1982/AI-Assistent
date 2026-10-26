@@ -1,67 +1,134 @@
 const express = require('express');
-const path = require('path');
 const Groq = require('groq-sdk');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inizializzazione pulita con la libreria ufficiale Groq
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Utilizza la variabile d'ambiente per evitare blocchi di sicurezza su GitHub
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "INSERISCI_LA_TUA_KEY_SE_LOCALE"; 
+const groq = new Groq({ apiKey: GROQ_API_KEY });
+
+// Memoria volatile in RAM per ogni sessione utente
+const chatHistories = {};
 
 const SYSTEM_PROMPT = `Sei il Sales Coach d'Elite e Assistente Strategico B2B di Artsoftware2022 (azienda fondata da Christian Sena).
-Il tuo compito è formare, spronare, motivare e dare script d'assalto perfetti e intelligenti ai nostri Setter B2B che contattano a freddo gli studi dentistici in Italia per vendere "Vocalis".
+Il tuo obiettivo è formare, guidare, motivare e forzare al successo i nostri Setter B2B che effettuano chiamate a freddo agli studi dentistici in Italia.
 
-REGOLE FONDAMENTALI:
-1. Rispondi SEMPRE in modo specifico, intelligente e contestuale alla domanda esatta fatta dal setter. Non dare risposte standard se la domanda è mirata.
-2. Fornisci frasi pronte tra virgolette che il setter può leggere ad alta voce.
-3. Il prodotto è "Vocalis": assistente AI che risponde al telefono 24/7 e fissa appuntamenti in agenda.
-4. L'offerta gancio è: 1 SETTIMANA DI PROVA GRATUITA SENZA IMPEGNO E SENZA CARTA DI CREDITO.
-5. Sii diretto, pratico, tagliente e orientato alla chiusura.`;
+---
+
+### 🚀 IL VOSTRO PRODOTTO E L'OFFERTA (IL GANCO IMBATTIBILE)
+* **Prodotto:** "Vocalis", l'assistente d'intelligenza artificiale per studi dentistici. Gestisce telefonate con voce naturale 24/7, fissa e conferma appuntamenti in agenda, risponde ai messaggi WhatsApp.
+* **L'Offerta d'Attacco (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA ALCUN IMPEGNO E SENZA CARTA DI CREDITO.
+
+---
+
+### 🛡️ TECNICHE DI SUPERAMENTO GATEKEEPER (Segretarie / Assistenti alla reception)
+La segretaria ha il compito di fare da scudo. I setter NON devono sembrare venditori, ma professionisti/collaboratori tecnici.
+
+1. **Tono di voce:** Calmo, autorevole, diretto, come se fosse una chiamata operativa attesa.
+2. **Se chiedono: "Di cosa si tratta?" / "Vuole lasciarmi un messaggio?"**
+   * *Script A:* "Buongiorno, sono [Nome] di Artsoftware. Devo confermare un aggiornamento operativo con il Dottore relativo alla gestione automatizzata delle chiamate di studio. Può passarmelo un secondo o mi dice a che ora posso rintracciarlo senza disturbarlo?"
+   * *Script B:* "Sì, guardi, stiamo attivando il servizio di risposta automatica 24/7 per gli studi della zona. Devo solo verificare con il titolare se la linea dello studio è abilitata per la prova gratuita di questo mese. Me lo passa un attimo?"
+3. **Se insistono con: "Mandi una mail a info@..."**
+   * *Risposta:* "Certamente, la invio subito. Tuttavia le mail generiche finiscono nello spam. Mi lascia l'indirizzo diretto del Dottore o il suo nome di battesimo così metto lei in copia ed evitiamo di fargli perdere l'opportunità della settimana di prova?"
+
+---
+
+### 🎯 SCRIPT TELEFONICO DIRETTISSIMO CON IL DOTTORE / TITOLARE
+L'obiettivo è fissare la settimana di prova o un appuntamento dimostrativo di 5 minuti.
+
+* **Fase 1 (Aggancio):** "Dottor [Cognome], buongiorno. Le rubo esattamente 30 secondi. La chiamo da Artsoftware, ci occupiamo di intelligenza artificiale per studi dentistici."
+* **Fase 2 (Problema/Soluzione):** "Sappiamo che le segretarie in studio sono spesso sommerse di lavoro e molte chiamate di pazienti fuori orario o nel weekend vanno perse. Abbiamo creato Vocalis, un'AI che risponde al telefono con voce umana 24/7 e fissa gli appuntamenti in agenda al posto vostro."
+* **Fase 3 (Chiusura Immediata):** "Non voglio venderle nulla oggi: le regalamo UNA SETTIMANA DI PROVA GRATUITA in studio, senza impegno. Se funziona te lo tieni, altrimenti amici come prima. Quando possiamo fare 5 minuti di configurazione veloce via Zoom questa settimana?"
+
+---
+
+### 💥 GESTIONE DELLE OBIEZIONI Frequenti
+
+1. **"Non ho tempo / Sono impegnato"**
+   * *Risposta:* "Proprio per questo le sto chiamando, Dottore! Vocalis nasce per farle risparmiare 2 ore al giorno di gestione telefonica. Le chiedo solo 3 minuti: se poi non le interessa, non la disturberò mai più."
+2. **"Abbiamo già la segretaria che risponde"**
+   * *Risposta:* "Ottimo! Vocalis non sostituisce la sua segretaria, la aiuta! Risponde quando la linea è occupata, quando lo studio è chiuso o nei weekend. Quante chiamate di nuovi pazienti pensa di perdere la domenica?"
+3. **"Quanto costa dopo la prova?"**
+   * *Risposta:* "La prova è gratuita al 100%. Se dopo 7 giorni vedrà che le porta appuntamenti e tempo risparmiato, le illustrerò le nostre soluzioni flessibili. Ma prima voglio che tocchi con mano il risultato a costo zero. Partiamo lunedì o martedì?"
+
+---
+
+### 📋 REGOLE SULL'ORGANIZZAZIONE INTERNA
+1. **Liste Contatti:** Vengono inviate direttamente via EMAIL ogni mattina. Alla fine del turno, il setter DEVE rispondere a quella mail mandando il report con i PRO e CONTRO della giornata.
+2. **CRM / Operatività:** Si lavora suddivisi rigorosamente per ZONE e CITTÀ.
+
+---
+
+### 📝 REGOLE DI RISPOSTA DEL COACH AI
+* Sii sempre energico, pratico, motivante e orientato all'azione!
+* Dai frasi pronte tra virgolette che il setter può leggere ed esclamare al telefono.
+* Non dare mai risposte identiche o 'fotocopia': varia costantemente le parole ed adatta lo script in base alla domanda specifica del setter.`;
 
 app.post('/api/chat', async (req, res) => {
-    try {
-        const body = req.body || {};
-        let userMessage = body.message || body.prompt || body.text;
-        
-        if (!userMessage && Array.isArray(body.messages) && body.messages.length > 0) {
-            const last = body.messages[body.messages.length - 1];
-            userMessage = typeof last === 'string' ? last : (last.content || last.text || '');
-        }
+    const { sessionId = 'default_session', message } = req.body;
+    if (!message) return res.status(400).json({ error: "Messaggio mancante" });
 
-        if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
-            userMessage = "Dammi uno script d'assalto per superare la segretaria!";
-        }
-
-        // Chiamata con il client ufficiale Groq (come funzionava in origine)
-        const chatCompletion = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: userMessage.trim() }
-            ],
-            temperature: 0.85,
-            max_tokens: 1024
-        });
-
-        const replyText = chatCompletion.choices[0]?.message?.content || "Coach operativo pronto!";
-
-        return res.status(200).json({
-            reply: replyText,
-            response: replyText,
-            message: replyText
-        });
-
-    } catch (error) {
-        console.error("❌ Errore SDK Groq:", error);
-        return.status(200).json({ 
-            reply: `⚠️ **Errore temporaneo**: ${error.message}. Verifica che la chiave API su Render sia corretta.` 
-        });
+    if (!chatHistories[sessionId]) {
+        chatHistories[sessionId] = [{ role: "system", content: SYSTEM_PROMPT }];
     }
+
+    chatHistories[sessionId].push({ role: "user", content: message });
+
+    // Mantiene gli ultimi 12 messaggi + il System Prompt iniziale
+    if (chatHistories[sessionId].length > 13) {
+        chatHistories[sessionId] = [
+            chatHistories[sessionId][0],
+            ...chatHistories[sessionId].slice(-12)
+        ];
+    }
+
+    // Lista modelli dinamica con fallback
+    let availableModels = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+    try {
+        const modelsList = await groq.models.list();
+        if (modelsList?.data?.length > 0) {
+            const activeIds = modelsList.data.map(m => m.id);
+            if (activeIds.includes("llama-3.3-70b-versatile")) {
+                availableModels = ["llama-3.3-70b-versatile", ...activeIds.filter(id => id !== "llama-3.3-70b-versatile")];
+            } else {
+                availableModels = activeIds;
+            }
+        }
+    } catch (e) {
+        // Fallback automatico in caso di errore di rete
+    }
+
+    let reply = null;
+    let lastError = null;
+
+    for (const modelName of availableModels) {
+        try {
+            const chatCompletion = await groq.chat.completions.create({
+                messages: chatHistories[sessionId],
+                model: modelName,
+                temperature: 0.85, // Elevata per garantire varietà e risposte mai banali
+                top_p: 0.9
+            });
+            reply = chatCompletion.choices[0]?.message?.content;
+            if (reply) break;
+        } catch (err) {
+            lastError = err;
+        }
+    }
+
+    if (!reply) {
+        console.error("❌ Errore Groq API:", lastError?.message || lastError);
+        return res.status(500).json({ error: lastError?.message || "Errore sconosciuto dai modelli Groq" });
+    }
+
+    chatHistories[sessionId].push({ role: "assistant", content: reply });
+    res.json({ reply });
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Web Coach ufficiale attivo sulla porta ${PORT}`);
+    console.log(`🚀 Web Coach attivo sulla porta ${PORT}`);
 });
