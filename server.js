@@ -51,7 +51,7 @@ L'obiettivo è chiudere la settimana di prova gratuita o fissare una call di 5 m
 
 ### 📋 REGOLE SULL'ORGANIZZAZIONE INTERNA
 1. **Liste Contatti:** Vengono inviate direttamente via EMAIL ogni mattina. Alla fine del turno, il setter DEVE rispondere a quella mail inviando il report con i PRO e CONTRO della giornata.
-2. **CRM / Operatività:** Si lavora suddivisi per ZONE e CITTÀ.
+2. **CRM / Operatività:** Lavoriamo suddivisi rigorosamente per ZONE e CITTÀ.
 
 ---
 
@@ -78,7 +78,30 @@ app.post('/api/chat', async (req, res) => {
             userMessage = "Dammi uno script d'assalto per iniziare le chiamate oggi!";
         }
 
-        // Chiamata diretta e blindata sul modello stabile e veloce per la chat
+        // Rilevamento automatico del primo modello disponibile per la chiave API
+        let activeModel = "llama3-8b-8192";
+        try {
+            const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+                headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+            });
+            const modelsData = await modelsRes.json();
+            if (modelsData && modelsData.data && modelsData.data.length > 0) {
+                // Filtra escludendo modelli di embedding o guardia
+                const chatModel = modelsData.data.find(m => 
+                    !m.id.includes("guard") && 
+                    !m.id.includes("embed") && 
+                    (m.id.includes("llama") || m.id.includes("mixtral") || m.id.includes("gemma"))
+                );
+                if (chatModel) {
+                    activeModel = chatModel.id;
+                } else {
+                    activeModel = modelsData.data[0].id;
+                }
+            }
+        } catch (e) {
+            console.warn("Impossibile elencare i modelli, uso il default.");
+        }
+
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -86,13 +109,13 @@ app.post('/api/chat', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
+                model: activeModel,
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },
                     { role: "user", content: userMessage.trim() }
                 ],
                 temperature: 0.85,
-                max_tokens: 800
+                max_tokens: 1024
             })
         });
 
@@ -108,7 +131,7 @@ app.post('/api/chat', async (req, res) => {
         } else {
             console.error("Errore API Groq:", data);
             const errMsg = data.error?.message || "Errore sconosciuto.";
-            return res.status(200).json({ reply: `Errore Groq: ${errMsg}` });
+            return res.status(200).json({ reply: `Errore Groq (${activeModel}): ${errMsg}` });
         }
 
     } catch (error) {
