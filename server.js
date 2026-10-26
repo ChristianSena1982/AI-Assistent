@@ -1,16 +1,12 @@
 const express = require('express');
 const path = require('path');
-const Groq = require('groq-sdk');
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inizializzazione sicura del client Groq
-const groq = new Groq({ 
-    apiKey: process.env.GROQ_API_KEY || "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" 
-});
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "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";
 
 const SYSTEM_PROMPT = `Sei il Sales Coach d'Elite e Assistente Strategico B2B di Artsoftware2022 (azienda fondata da Christian Sena).
 Il tuo compito è formare, guidare, motivare e dare script d'assalto perfetti ai nostri Setter B2B che contattano a freddo gli studi dentistici in Italia.
@@ -19,7 +15,7 @@ Il tuo compito è formare, guidare, motivare e dare script d'assalto perfetti ai
 
 ### 🚀 PRODOTTO ED OFFERTA (IL GANCIO IMBATTIBILE)
 * **Prodotto:** "Vocalis", l'assistente d'intelligenza artificiale per studi dentistici. Gestisce telefonate 24/7 con voce naturale, fissa appuntamenti in agenda e risponde su WhatsApp.
-* **L'Offerta (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA ALCUN IMPEGNO E SENZA CARTA DI CREDITO.
+* **L'Offerta (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA IMPEGNO E SENZA CARTA DI CREDITO.
 
 ---
 
@@ -55,7 +51,7 @@ Non sembrare MAI un venditore. Parla con tono calmo, autorevole, professionale e
 ### 📝 REGOLE DI RISPOSTA DEL COACH
 * Sii sempre energico, pratico, motivante e orientato all'azione!
 * Fornisci frasi pronte tra virgolette che il setter può leggere ed esclamare subito al telefono.
-* Varia costantemente le parole ed adatta al meglio lo script in base alla richiesta.`;
+* Varia costantemente le parole ed adatta lo script in base alla richiesta specifica.`;
 
 app.post('/api/chat', async (req, res) => {
     try {
@@ -71,10 +67,14 @@ app.post('/api/chat', async (req, res) => {
             userMessage = "Dammi uno script per superare la segretaria";
         }
 
-        let replyText = "";
-
-        try {
-            const completion = await groq.chat.completions.create({
+        // Chiamata HTTP nativa a Groq (senza SDK esterni che creano conflitti)
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },
@@ -82,40 +82,30 @@ app.post('/api/chat', async (req, res) => {
                 ],
                 temperature: 0.85,
                 max_tokens: 1024
-            });
-            replyText = completion.choices[0]?.message?.content;
-        } catch (apiErr) {
-            console.warn("⚠️ Tentativo 70B fallito, provo con 8B:", apiErr.message);
-            const completion2 = await groq.chat.completions.create({
-                model: "llama-3.1-8b-instant",
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    { role: "user", content: userMessage.trim() }
-                ],
-                temperature: 0.85,
-                max_tokens: 1024
-            });
-            replyText = completion2.choices[0]?.message?.content;
-        }
-
-        if (!replyText) {
-            replyText = "Ottimo lavoro Setter! Ricorda di puntare sempre sulla settimana di prova gratuita e di spingere per fissare l'orario della chiamata.";
-        }
-
-        return res.json({
-            reply: replyText,
-            response: replyText,
-            message: replyText
+            })
         });
 
+        const data = await response.json();
+
+        if (data.choices && data.choices.length > 0) {
+            const replyText = data.choices[0].message.content;
+            return res.json({
+                reply: replyText,
+                response: replyText,
+                message: replyText
+            });
+        } else {
+            console.error("Risposta API Groq non valida:", data);
+            throw new Error(data.error?.message || "Errore sconosciuto da Groq");
+        }
+
     } catch (error) {
-        console.error("❌ Errore critico server:", error);
-        // Risposta di cortesia che evita l'errore 500 al browser
-        const fallbackMsg = "Coach operativo! Per superare il filtro della segretaria, mantieni un tono calmo e di natura professionale: 'Devo confermare un aggiornamento operativo con il Dottore'. Come posso aiutarti ulteriormente?";
+        console.error("❌ Errore critico:", error.message);
+        const errorMsg = `Errore di connessione all'IA: ${error.message}. Verifica la chiave API nelle variabili d'ambiente di Render.`;
         return res.json({
-            reply: fallbackMsg,
-            response: fallbackMsg,
-            message: fallbackMsg
+            reply: errorMsg,
+            response: errorMsg,
+            message: errorMsg
         });
     }
 });
