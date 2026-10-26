@@ -1,12 +1,14 @@
 const express = require('express');
 const path = require('path');
+const Groq = require('groq-sdk');
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+// Inizializzazione pulita con la libreria ufficiale Groq
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const SYSTEM_PROMPT = `Sei il Sales Coach d'Elite e Assistente Strategico B2B di Artsoftware2022 (azienda fondata da Christian Sena).
 Il tuo compito è formare, spronare, motivare e dare script d'assalto perfetti e intelligenti ai nostri Setter B2B che contattano a freddo gli studi dentistici in Italia per vendere "Vocalis".
@@ -20,10 +22,6 @@ REGOLE FONDAMENTALI:
 
 app.post('/api/chat', async (req, res) => {
     try {
-        if (!GROQ_API_KEY) {
-            return res.status(200).json({ reply: "⚠️ Manca la GROQ_API_KEY nelle variabili d'ambiente di Render." });
-        }
-
         const body = req.body || {};
         let userMessage = body.message || body.prompt || body.text;
         
@@ -33,55 +31,37 @@ app.post('/api/chat', async (req, res) => {
         }
 
         if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
-            userMessage = "Dammi uno script d'assalto!";
+            userMessage = "Dammi uno script d'assalto per superare la segretaria!";
         }
 
-        // Usiamo il modello llama3-8b-8192 che è lo standard nativo perfettamente compatibile con tutte le chiavi Groq
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama3-8b-8192",
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    { role: "user", content: userMessage.trim() }
-                ],
-                temperature: 0.85,
-                max_tokens: 1024
-            })
+        // Chiamata con il client ufficiale Groq (come funzionava in origine)
+        const chatCompletion = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: userMessage.trim() }
+            ],
+            temperature: 0.85,
+            max_tokens: 1024
         });
 
-        const data = await response.json();
+        const replyText = chatCompletion.choices[0]?.message?.content || "Coach operativo pronto!";
 
-        if (data.choices && data.choices.length > 0) {
-            const replyText = data.choices[0].message.content;
-            return res.status(200).json({
-                reply: replyText,
-                response: replyText,
-                message: replyText
-            });
-        } else {
-            console.error("Errore Groq API:", data);
-            // Risposta intelligente contestuale se l'API rallenta
-            let smartFallback = `🎯 **Risposta del Coach (Smart Mode)**:\n\nSe la segretaria insiste e **non ti passa il Dottore**, non mollarla e usa questo script autorevole:\n\n> *"Capisco perfettamente. Visto che il Dottore è impegnato con i pazienti, mi basta fargli recapitare solo 30 secondi di test del nostro assistente AI Vocalis. A che ora posso richiamarlo direttamente sul suo cellulare o sullo studio senza disturbare gli appuntamenti?"*\n\nSpingi sempre per la settimana di prova gratuita!`;
-            if (userMessage.toLowerCase().includes('prezzo') || userMessage.toLowerCase().includes('costa')) {
-                smartFallback = `💰 **Strategia sul Prezzo**:\n\n> *"La prima settimana di Vocalis è al 100% gratuita e senza impegno. Vogliamo che proviate l'AI in studio: se vi porta appuntamenti in agenda e vi libera tempo, ne parliamo. Altrimenti amici come prima. Partiamo lunedì?"*`;
-            }
-            return res.status(200).json({ reply: smartFallback });
-        }
+        return res.status(200).json({
+            reply: replyText,
+            response: replyText,
+            message: replyText
+        });
 
     } catch (error) {
-        console.error("Errore server:", error);
-        return res.status(200).json({ 
-            reply: `💡 **Coach operativo**: Ottima domanda setter! Mantieni sempre il controllo della chiamata con tono calmo e operativo e chiudi proponendo la settimana di prova gratuita di Vocalis.` 
+        console.error("❌ Errore SDK Groq:", error);
+        return.status(200).json({ 
+            reply: `⚠️ **Errore temporaneo**: ${error.message}. Verifica che la chiave API su Render sia corretta.` 
         });
     }
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`🚀 Web Coach intelligente attivo sulla porta ${PORT}`);
+    console.log(`🚀 Web Coach ufficiale attivo sulla porta ${PORT}`);
 });
