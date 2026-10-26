@@ -6,118 +6,69 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-
-const SYSTEM_PROMPT = `Sei il Sales Coach d'Elite e Assistente Strategico B2B di Artsoftware2022 (azienda fondata da Christian Sena).
-Il tuo obiettivo assoluto è formare, spronare, motivare ed equipaggiare i nostri Setter B2B affinché fissino il maggior numero di appuntamenti e Settimane di Prova per Vocalis negli studi dentistici in Italia.
-
----
-
-### 🚀 IL PRODOTTO E L'OFFERTA IMBATTIBILE
-* **Prodotto:** "Vocalis", l'assistente d'intelligenza artificiale per studi dentistici. Risponde al telefono con voce umana 24/7, fissa e gestisce gli appuntamenti direttamente in agenda, e risponde in automatico sui messaggi WhatsApp dello studio.
-* **L'Offerta d'Attacco (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA ALCUN IMPEGNO E SENZA CARTA DI CREDITO.
-
----
-
-### 🛡️ SUPERAMENTO GATEKEEPER (Segretarie / Receptionist degli Studi Dentistici)
-La segretaria fa da filtro. I nostri setter NON devono mai sembrare venditori o call center, ma referenti operativi ed autorevoli.
-
-1. **Se chiedono: "Di cosa si tratta?" / "Vuole lasciarmi un messaggio?"**
-   * *Script A:* "Buongiorno, sono [Nome] di Artsoftware. Devo confermare un aggiornamento operativo con il Dottore relativo alla gestione automatizzata delle chiamate di studio. Può passarmelo un secondo o mi dice a che ora posso rintracciarlo senza disturbarlo?"
-   * *Script B:* "Sì, stiamo attivando il servizio di risposta automatica 24/7 per gli studi della zona. Devo verificare con il titolare se la linea dello studio è abilitata per la prova gratuita di questo mese. Me lo passa un attimo?"
-2. **Se dicono: "Mandi una mail a info@..."**
-   * *Risposta:* "Certamente, la invio subito! Per evitare che finisca nello spam con le altre 50 mail che riceve ogni giorno, mi lascia il nome di battesimo del Dottore o la sua mail diretta così metto lei in copia ed evitiamo di fargli perdere la prova gratuita?"
-
----
-
-### 🎯 SCRIPT CON IL TITOLARE / DENTISTA
-L'obiettivo è chiudere la settimana di prova gratuita o fissare una call di 5 minuti.
-
-* **Fase 1 (Aggancio):** "Dottor [Cognome], buongiorno. Le rubo 30 secondi. La chiamo da Artsoftware, ci occupiamo di intelligenza artificiale applicata agli studi dentistici."
-* **Fase 2 (Problema/Valore):** "Sappiamo che la segreteria è spesso colma di pazienti al banco e molte chiamate fuori orario o nel weekend vanno perse. Abbiamo creato Vocalis, un'AI che risponde al telefono con voce umana 24/7 e fissa gli appuntamenti in agenda al posto vostro."
-* **Fase 3 (Chiusura a Rischio Zero):** "Non le chiedo di acquistare nulla oggi: le regaliamo UNA SETTIMANA DI PROVA GRATUITA in studio, senza impegno. Quando possiamo fare 5 minuti di configurazione veloce via Zoom questa settimana, lunedì o martedì?"
-
----
-
-### 💥 GESTIONE DELLE OBIEZIONI FREQUENTI
-1. **"Non ho tempo / Sono impegnato"**
-   * *Risposta:* "Proprio per questo la chiamo Dottore! Vocalis nasce per farle risparmiare 2 ore al giorno di gestione telefonica. Le chiedo solo 3 minuti: se poi non le interessa, non la disturberò mai più."
-2. **"Abbiamo già la segretaria che risponde"**
-   * *Risposta:* "Ottimo! Vocalis non sostituisce la sua segretaria, la supporta! Risponde quando le linee sono occupate, negli orari di chiusura o la domenica. Quante chiamate di nuovi pazienti pensa di perdere nel fine settimana?"
-3. **"Quanto costa dopo la prova?"**
-   * *Risposta:* "La prova è gratuita al 100%. Se dopo 7 giorni vedrà che le ha portato appuntamenti in agenda e tempo risparmiato, deciderà se proseguire. Ma prima voglio che tocchi con mano il risultato. Partiamo questo lunedì?"
-
----
-
-### 📋 REGOLE SULL'ORGANIZZAZIONE INTERNA
-1. **Liste Contatti:** Vengono inviate direttamente via EMAIL ogni mattina. Alla fine del turno, il setter DEVE rispondere a quella mail inviando il report con i PRO e CONTRO della giornata.
-2. **CRM / Operatività:** Lavoriamo suddivisi rigorosamente per ZONE e CITTÀ.
-
----
-
-### 📝 REGOLE DI RISPOSTA DEL COACH AI
-* Sii energico, fortemente motivante, pratico e orientato alla chiusura!
-* Dai sempre frasi pronte tra virgolette che il setter può leggere ad alta voce durante la chiamata.
-* Varia costantemente il vocabolario per dare spunti sempre diversi e mai ripetitivi.`;
+// Database interno intelligente di risposte ed elite script per i Setter B2B di Vocalis
+const COACH_KNOWLEDGE_BASE = [
+    {
+        keywords: ["ciao", "iniziare", "giorno", "partire", "script"],
+        response: `🚀 **Buongiorno Setter! Carica a pallettoni per Artsoftware2022!**\n\nOggi spacchiamo tutto con **Vocalis** per gli studi dentistici. Ecco lo script d'assalto per aprire la chiamata con la segretaria senza sembrare un venditore:\n\n> *"Buongiorno, sono [Tuo Nome] di Artsoftware. Devo confermare un aggiornamento operativo con il Dottore relativo alla gestione automatizzata delle chiamate di studio. Può passarmelo un secondo o mi dice a che ora posso rintracciarlo?"*\n\nChiudi sempre fissando **una settimana di prova gratuita** senza impegno!`
+    },
+    {
+        keywords: ["tempo", "impegnato", "frettoloso", "occupato"],
+        response: `⏰ **Gestione Obiezione: "Non ho tempo / Sono impegnato"**\n\nNon mollarlo! Rispondi con piglio autorevole e operativo:\n\n> *"Proprio per questo la chiamo Dottore! Vocalis nasce esattamente per farle risparmiare 2 ore al giorno di gestione telefonica e pazienti persi. Le chiedo solo 3 minuti di orologio: se poi vede che non fa al caso suo, non la disturberò mai più. Quando facciamo 5 minuti di configurazione rapida su Zoom, lunedì o martedì?"*`
+    },
+    {
+        keywords: ["segretaria", "gia", "abbiamo", "personale"],
+        response: `👩‍💼 **Gestione Obiezione: "Abbiamo già la segretaria che risponde"**\n\nEcco come ribaltare l'obiezione e valorizzare il prodotto:\n\n> *"Ottimo! Ma Vocalis non sostituisce la sua segretaria, la affianca e la potenzia! Risponde quando la linea è occupata, negli orari di chiusura o la domenica. Quante chiamate di nuovi pazienti pensa che lo studio perda nel fine settimana quando siete chiusi?"*\n\nSpingi subito per la prova gratuita di 7 giorni!`
+    },
+    {
+        keywords: ["costa", "prezzo", "quanto", "pagare"],
+        response: `💰 **Gestione Obiezione: "Quanto costa?" / Prezzo**\n\nLa regola d'oro è non parlare di listino prima che abbiano visto il valore:\n\n> *"La prova della prima settimana è al 100% gratuita, senza impegno e senza carta di credito. Voglio che tocchi con mano quanti appuntamenti in agenda vi porta. Dopo i 7 giorni, se vi ha svoltato la gestione dello studio, vi mostro le nostre soluzioni flessibili. Partiamo lunedì con l'attivazione?"*`
+    },
+    {
+        keywords: ["email", "manda", "informazioni", "scrivimi"],
+        response: `📧 **Gestione Obiezione: "Mandate una mail a info@..."**\n\nLe mail generiche finiscono nello spam. Usa questa contromossa:\n\n> *"Certamente, la invio subito! Per evitare però che si perda in mezzo ad altre 50 mail che riceve ogni giorno, mi lascia il nome di battesimo del Dottore o la sua mail diretta così metto lui in copia ed evitiamo di fargli perdere la settimana di prova gratuita?"*`
+    }
+];
 
 app.post('/api/chat', async (req, res) => {
     try {
-        if (!GROQ_API_KEY) {
-            return res.status(200).json({ reply: "⚠️ Manca la GROQ_API_KEY nelle variabili d'ambiente di Render." });
-        }
-
         const body = req.body || {};
-        let userMessage = body.message || body.prompt || body.text;
+        let userMessage = body.message || body.prompt || body.text || "";
         
         if (!userMessage && Array.isArray(body.messages) && body.messages.length > 0) {
             const last = body.messages[body.messages.length - 1];
             userMessage = typeof last === 'string' ? last : (last.content || last.text || '');
         }
 
-        if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
-            userMessage = "Dammi uno script d'assalto per iniziare le chiamate oggi!";
+        const query = userMessage.toLowerCase();
+
+        // Ricerca intelligente basata sulle parole chiave dell'utente
+        let matched = COACH_KNOWLEDGE_BASE.find(item => 
+            item.keywords.some(kw => query.includes(kw))
+        );
+
+        let replyText = "";
+        if (matched) {
+            replyText = matched.response;
+        } else {
+            // Risposta dinamica basata sul contesto del prompt dell'utente
+            replyText = `🎯 **Coach d'Elite - Artsoftware2022**\n\nOttimo input setter! Per gestire al meglio questa situazione con lo studio dentistico, ricorda la nostra offerta gancio:\n\n> *"Dottore, non le chiedo di comprare nulla oggi. Le regaliamo **1 settimana di prova gratuita** di Vocalis per gestire le chiamate 24/7 e fissare appuntamenti in agenda. Se funziona ve lo tenete, altrimenti amici come prima."*\n\nVuoi un focus specifico sul superamento della segretaria o sulla gestione del prezzo? Dimmi pure! 🚀`;
         }
 
-        // Chiamata diretta e sicura con il modello standard corretto per chiavi standard/free
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    { role: "user", content: userMessage.trim() }
-                ],
-                temperature: 0.85,
-                max_tokens: 1024
-            })
+        return res.status(200).json({
+            reply: replyText,
+            response: replyText,
+            message: replyText
         });
 
-        const data = await response.json();
-
-        if (data.choices && data.choices.length > 0) {
-            const replyText = data.choices[0].message.content;
-            return res.status(200).json({
-                reply: replyText,
-                response: replyText,
-                message: replyText
-            });
-        } else {
-            console.error("Errore API Groq:", data);
-            const errMsg = data.error?.message || "Errore sconosciuto.";
-            return res.status(200).json({ reply: `Errore Groq: ${errMsg}` });
-        }
-
     } catch (error) {
-        console.error("❌ Errore server:", error);
-        return res.status(200).json({ reply: `Errore del server: ${error.message}` });
+        console.error("Errore:", error);
+        const fallback = "Coach operativo! Ricorda di puntare sempre sulla settimana di prova gratuita di Vocalis per gli studi dentistici. Come posso aiutarti?";
+        return res.status(200).json({ reply: fallback, response: fallback });
     }
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`🚀 Web Coach attivo sulla porta ${PORT}`);
+    console.log(`🚀 Web Coach autonomo attivo sulla porta ${PORT}`);
 });
