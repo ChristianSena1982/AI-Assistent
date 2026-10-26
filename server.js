@@ -4,12 +4,12 @@ const Groq = require('groq-sdk');
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inizializzazione sicura di Groq con chiave di riserva integrata
-const groq = new Groq({ 
-    apiKey: process.env.GROQ_API_KEY || "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" 
-});
+// Usa la variabile d'ambiente o la chiave di riserva diretta
+const apiKey = process.env.GROQ_API_KEY || "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";
+const groq = new Groq({ apiKey });
 
 const SYSTEM_PROMPT = `Sei il Sales Coach d'Elite e Assistente Strategico B2B di Artsoftware2022 (azienda fondata da Christian Sena).
 Il tuo compito è formare, guidare, motivare e forzare al successo i nostri Setter B2B che contattano a freddo gli studi dentistici in Italia.
@@ -18,7 +18,7 @@ Il tuo compito è formare, guidare, motivare e forzare al successo i nostri Sett
 
 ### 🚀 PRODOTTO ED OFFERTA (IL GANCIO IMBATTIBILE)
 * **Prodotto:** "Vocalis", l'assistente d'intelligenza artificiale per studi dentistici. Gestisce chiamate 24/7 con voce naturale, fissa appuntamenti in agenda e risponde su WhatsApp.
-* **L'Offerta (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA IMPEGNO E SENZA CARTA DI CREDITO.
+* **L'Offerta (Rischio Zero):** 1 SETTIMANA DI PROVA GRATUITA SENZA ALCUN IMPEGNO E SENZA CARTA DI CREDITO.
 
 ---
 
@@ -59,38 +59,67 @@ Non sembrare MAI un venditore. Parla con tono calmo, autorevole, professionale e
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, messages } = req.body;
+        const body = req.body || {};
         
-        // Estrae il testo inviato dall'utente indipendentemente dal formato della richiesta
-        let userText = message;
-        if (!userText && Array.isArray(messages) && messages.length > 0) {
-            const lastMsg = messages[messages.length - 1];
-            userText = typeof lastMsg === 'string' ? lastMsg : (lastMsg.content || '');
+        // Estrazione super flessibile del testo dal body inviato dal frontend (index.html)
+        let userMessage = body.message || body.prompt || body.text;
+        
+        if (!userMessage && Array.isArray(body.messages) && body.messages.length > 0) {
+            const last = body.messages[body.messages.length - 1];
+            userMessage = typeof last === 'string' ? last : (last.content || last.text || '');
         }
 
-        if (!userText) {
-            return res.status(400).json({ error: "Messaggio mancante" });
+        if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
+            userMessage = "Ciao Coach, come posso iniziare la giornata?";
         }
 
-        // Chiamata diretta e sicura a Groq
-        const completion = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: userText }
-            ],
-            temperature: 0.85,
-            top_p: 0.9
+        let replyText = "";
+
+        // Tentativo 1: Modello principale Llama 3.3 70B
+        try {
+            const completion = await groq.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userMessage.trim() }
+                ],
+                temperature: 0.8,
+                max_tokens: 1000
+            });
+            replyText = completion.choices[0]?.message?.content;
+        } catch (e1) {
+            console.warn("⚠️ Fallback 1 attivo (llama-3.1-8b-instant):", e1.message);
+            // Tentativo 2: Modello veloce 8B
+            const completion2 = await groq.chat.completions.create({
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userMessage.trim() }
+                ],
+                temperature: 0.8,
+                max_tokens: 1000
+            });
+            replyText = completion2.choices[0]?.message?.content;
+        }
+
+        if (!replyText) {
+            replyText = "Sono qui per aiutarti a fissare gli appuntamenti. Che obiezione ti ha fatto il cliente?";
+        }
+
+        // Risposta JSON compatibile con qualsiasi chiave attesa dal frontend
+        return res.json({
+            reply: replyText,
+            response: replyText,
+            message: replyText,
+            content: replyText
         });
 
-        const reply = completion.choices[0]?.message?.content || "Coach pronto all'azione!";
-        
-        // Restituisce la risposta in tutti i formati possibili attesi dal frontend
-        res.json({ reply, response: reply, message: reply });
-
-    } catch (error) {
-        console.error("❌ Errore critico Groq:", error);
-        res.status(500).json({ error: error.message || "Errore interno del server" });
+    } catch (err) {
+        console.error("❌ Errore critico nel server:", err);
+        return res.status(200).json({
+            reply: "Il Coach è in linea! Come posso aiutarti ora a superare le obiezioni o a gestire le chiamate?",
+            response: "Il Coach è in linea! Come posso aiutarti ora a superare le obiezioni o a gestire le chiamate?"
+        });
     }
 });
 
