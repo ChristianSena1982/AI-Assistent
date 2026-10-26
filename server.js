@@ -78,27 +78,7 @@ app.post('/api/chat', async (req, res) => {
             userMessage = "Dammi uno script d'assalto per iniziare le chiamate oggi!";
         }
 
-        // 1. Chiediamo a Groq quali modelli sono disponibili per questa chiave
-        let modelToUse = "llama-3.1-8b-instant";
-        try {
-            const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
-                headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
-            });
-            const modelsData = await modelsRes.json();
-            if (modelsData && modelsData.data && modelsData.data.length > 0) {
-                // Prende il primo modello chat disponibile nella lista
-                const chatModel = modelsData.data.find(m => m.id.includes("llama") || m.id.includes("mixtral") || m.id.includes("gemma"));
-                if (chatModel) {
-                    modelToUse = chatModel.id;
-                } else {
-                    modelToUse = modelsData.data[0].id;
-                }
-            }
-        } catch (mErr) {
-            console.warn("Impossibile recuperare la lista modelli, uso il default.", mErr);
-        }
-
-        // 2. Inviamo la richiesta con il modello trovato
+        // Chiamata diretta e blindata sul modello stabile e veloce per la chat
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -106,13 +86,13 @@ app.post('/api/chat', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: modelToUse,
+                model: "llama-3.1-8b-instant",
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },
                     { role: "user", content: userMessage.trim() }
                 ],
                 temperature: 0.85,
-                max_tokens: 1024
+                max_tokens: 800
             })
         });
 
@@ -126,9 +106,9 @@ app.post('/api/chat', async (req, res) => {
                 message: replyText
             });
         } else {
-            console.error("Risposta API Groq non valida:", data);
-            const errMsg = data.error?.message || "Errore sconosciuto da Groq.";
-            return res.status(200).json({ reply: `Errore Groq (${modelToUse}): ${errMsg}` });
+            console.error("Errore API Groq:", data);
+            const errMsg = data.error?.message || "Errore sconosciuto.";
+            return res.status(200).json({ reply: `Errore Groq: ${errMsg}` });
         }
 
     } catch (error) {
