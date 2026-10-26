@@ -35,7 +35,7 @@ L'obiettivo è chiudere la settimana di prova gratuita o fissare una call di 5 m
 
 * **Fase 1 (Aggancio):** "Dottor [Cognome], buongiorno. Le rubo 30 secondi. La chiamo da Artsoftware, ci occupiamo di intelligenza artificiale applicata agli studi dentistici."
 * **Fase 2 (Problema/Valore):** "Sappiamo che la segreteria è spesso colma di pazienti al banco e molte chiamate fuori orario o nel weekend vanno perse. Abbiamo creato Vocalis, un'AI che risponde al telefono con voce umana 24/7 e fissa gli appuntamenti in agenda al posto vostro."
-* **Fase 3 (Chiusura a Rischio Zero):** "Non le chiedo di acquistare nulla oggi: le regaliamo UNA SETTIMANA DI PROVA GRATUITA in studio, senza impegno. Quando possiamo fare 5 minuti di configurazione veloce su Zoom questa settimana, lunedì o martedì?"
+* **Fase 3 (Chiusura a Rischio Zero):** "Non le chiedo di acquistare nulla oggi: le regaliamo UNA SETTIMANA DI PROVA GRATUITA in studio, senza impegno. Quando possiamo fare 5 minuti di configurazione veloce via Zoom questa settimana, lunedì o martedì?"
 
 ---
 
@@ -63,7 +63,7 @@ L'obiettivo è chiudere la settimana di prova gratuita o fissare una call di 5 m
 app.post('/api/chat', async (req, res) => {
     try {
         if (!GROQ_API_KEY) {
-            return res.json({ reply: "⚠️ Manca la GROQ_API_KEY nelle variabili d'ambiente di Render." });
+            return res.status(200).json({ reply: "⚠️ Manca la GROQ_API_KEY nelle variabili d'ambiente di Render." });
         }
 
         const body = req.body || {};
@@ -78,7 +78,27 @@ app.post('/api/chat', async (req, res) => {
             userMessage = "Dammi uno script d'assalto per iniziare le chiamate oggi!";
         }
 
-        // Utilizziamo il modello 8B instant, compatibile al 100% con tutte le chiavi Groq
+        // 1. Chiediamo a Groq quali modelli sono disponibili per questa chiave
+        let modelToUse = "llama-3.1-8b-instant";
+        try {
+            const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+                headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+            });
+            const modelsData = await modelsRes.json();
+            if (modelsData && modelsData.data && modelsData.data.length > 0) {
+                // Prende il primo modello chat disponibile nella lista
+                const chatModel = modelsData.data.find(m => m.id.includes("llama") || m.id.includes("mixtral") || m.id.includes("gemma"));
+                if (chatModel) {
+                    modelToUse = chatModel.id;
+                } else {
+                    modelToUse = modelsData.data[0].id;
+                }
+            }
+        } catch (mErr) {
+            console.warn("Impossibile recuperare la lista modelli, uso il default.", mErr);
+        }
+
+        // 2. Inviamo la richiesta con il modello trovato
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -86,7 +106,7 @@ app.post('/api/chat', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
+                model: modelToUse,
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },
                     { role: "user", content: userMessage.trim() }
@@ -100,7 +120,7 @@ app.post('/api/chat', async (req, res) => {
 
         if (data.choices && data.choices.length > 0) {
             const replyText = data.choices[0].message.content;
-            return res.json({
+            return res.status(200).json({
                 reply: replyText,
                 response: replyText,
                 message: replyText
@@ -108,12 +128,12 @@ app.post('/api/chat', async (req, res) => {
         } else {
             console.error("Risposta API Groq non valida:", data);
             const errMsg = data.error?.message || "Errore sconosciuto da Groq.";
-            return res.json({ reply: `Errore Groq: ${errMsg}` });
+            return res.status(200).json({ reply: `Errore Groq (${modelToUse}): ${errMsg}` });
         }
 
     } catch (error) {
         console.error("❌ Errore server:", error);
-        return res.json({ reply: `Errore del server: ${error.message}` });
+        return res.status(200).json({ reply: `Errore del server: ${error.message}` });
     }
 });
 
